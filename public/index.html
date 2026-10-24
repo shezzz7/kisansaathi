@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KisanSaathi (prototype)</title>
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--f:#176B45;--d:#124B34;--g:#46A66A;--bg:#F5FAF5;--m:#E8F5EC;--t:#20332A;--s:#68776D;--b:#DDE8DF;--i:#2F80ED;--w:#E9A23B;--r:#D94B4B}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.55 Mukta,system-ui,sans-serif;background:var(--bg);color:var(--t)}
+h1,h2,h3{line-height:1.2;margin:0 0 .5rem}h2{font-size:1.35rem}h3{font-size:1.05rem}
+p{margin:.3rem 0}.s{color:var(--s);font-size:.92rem}
+nav{position:fixed;z-index:5;background:#fff;border:0 solid var(--b);display:flex}
+nav button{background:none;border:0;font:inherit;color:var(--s);padding:10px 6px;cursor:pointer;border-radius:12px;min-height:48px}
+nav button.on{color:var(--f);font-weight:800;background:var(--m)}
+nav .logo{display:none}
+@media(max-width:799px){nav{bottom:0;left:0;right:0;border-top-width:1px;justify-content:space-around}nav button{flex:1;font-size:.72rem}nav b{display:block;font-size:1.25rem}main{padding-bottom:90px}}
+@media(min-width:800px){nav{top:0;bottom:0;left:0;width:220px;flex-direction:column;border-right-width:1px;padding:16px 10px;gap:4px}nav button{text-align:left;font-size:1rem}nav b{margin-right:8px}nav .logo{display:block;font-weight:800;color:var(--d);font-size:1.3rem;padding:4px 10px 14px}main{margin-left:220px}}
+main{max-width:980px;padding:18px;margin-inline:auto}
+@media(min-width:800px){main{margin-left:max(220px,calc(50% - 270px))}}
+.top{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.badge{background:#FFF3DC;color:#8A5A00;border:1px solid var(--w);border-radius:99px;padding:2px 10px;font-size:.8rem}
+.hero{background:var(--d);color:#fff;border-radius:20px;padding:20px;margin-bottom:14px}
+.hero .s{color:#BFE3CD}.big{font-size:2.6rem;font-weight:800;line-height:1}
+.card{background:#fff;border:1px solid var(--b);border-radius:16px;padding:14px;margin-bottom:12px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button.p,button.q{font:inherit;border-radius:12px;padding:10px 16px;min-height:44px;cursor:pointer;border:1px solid var(--f)}
+button.p{background:var(--f);color:#fff;font-weight:600}button.q{background:#fff;color:var(--f)}
+button.sm{min-height:36px;padding:4px 12px;font-size:.9rem}
+input,select{font:inherit;padding:9px 10px;border:1px solid var(--b);border-radius:10px;min-height:44px;background:#fff;max-width:100%}
+label{display:block;font-size:.88rem;color:var(--s)}
+.hi,.med,.low{border-left:5px solid var(--g)}.hi{border-left-color:var(--r)}.med{border-left-color:var(--w)}
+.tag{display:inline-block;border-radius:8px;padding:0 8px;font-size:.82rem;font-weight:600;background:var(--m);color:var(--d)}
+.tag.High{background:#FBE3E3;color:#9C2A2A}.tag.Moderate{background:#FFF3DC;color:#8A5A00}.tag.Insufficient{background:#EEE;color:#555}
+.note{background:#EAF2FE;border:1px solid #BCD4F7;border-radius:12px;padding:10px;font-size:.92rem}
+.warn{background:#FFF3DC;border:1px solid var(--w)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}.thumbs div{position:relative}
+.thumbs img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--b)}
+.thumbs button{position:absolute;top:4px;right:4px;border:0;border-radius:99px;width:28px;height:28px;background:#fff;cursor:pointer}
+.strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}.strip div{min-width:74px;text-align:center;background:var(--m);border-radius:12px;padding:6px}
+ul{margin:.3rem 0;padding-left:1.2rem}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--d);color:#fff;padding:10px 18px;border-radius:12px;display:none;z-index:9}
+:focus-visible{outline:3px solid var(--i);outline-offset:2px}
+</style></head><body>
+<nav id="nav"></nav><main id="app"></main><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const day=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
+const K='ks_proto_v1';
+
+/* ---------- translations (one dictionary) ---------- */
+const TX={
+en:{home:'Home',doctor:'Crop Doctor',weather:'Weather & Plan',tasks:'Tasks',soil:'Soil & Water',demo:'Demo data',tag:'Smarter Farming. Better Decisions. Healthier Crops.',today:'What should I do today?',run:'Run demo analysis',save:'Save inspection',done:'Mark completed',later:'Remind me later',plan:'Your Farm Plan for the Next 7 Days',refresh:'Refresh forecast',reset:'Reset demo data'},
+hi:{home:'होम',doctor:'फसल डॉक्टर',weather:'मौसम व योजना',tasks:'कार्य',soil:'मिट्टी व सिंचाई',demo:'डेमो डेटा',tag:'स्मार्ट खेती। बेहतर फैसले। स्वस्थ फसल।',today:'आज क्या करें?',run:'डेमो जांच चलाएं',save:'जांच सहेजें',done:'पूरा हुआ',later:'बाद में याद दिलाएं',plan:'अगले 7 दिनों की खेत योजना',refresh:'पूर्वानुमान रीफ्रेश करें',reset:'डेमो डेटा रीसेट करें'},
+mr:{home:'मुख्यपृष्ठ',doctor:'पीक डॉक्टर',weather:'हवामान व योजना',tasks:'कामे',soil:'माती व सिंचन',demo:'डेमो डेटा',tag:'स्मार्ट शेती. चांगले निर्णय. निरोगी पीक.',today:'आज काय करावे?',run:'डेमो तपासणी करा',save:'तपासणी जतन करा',done:'पूर्ण झाले',later:'नंतर आठवण करा',plan:'पुढील ७ दिवसांची शेती योजना',refresh:'अंदाज रिफ्रेश करा',reset:'डेमो डेटा रीसेट करा'}};
+const t=k=>(TX[S.lang]||TX.en)[k]||TX.en[k]||k;
+
+/* ---------- state ---------- */
+const FIELDS={tomato:{n:'Tomato field',crop:'Tomato',stage:'Flowering and fruit set',irr:'Drip',area:'1.2 acre'},soy:{n:'Soybean field',crop:'Soybean',stage:'Maturity',irr:'Rain-fed',area:'2 acre'}};
+const seed=()=>({lang:'en',loc:{name:'Nashik, Maharashtra',lat:19.9975,lon:73.7898},
+ tasks:[
+ {id:1,title:'Inspect tomato leaves for discolouration',field:'tomato',cat:'inspection',due:day(0),prio:'high',st:'pending',why:'Last inspection (demo) recorded leaf discolouration. Review affected plants before choosing a treatment.'},
+ {id:2,title:'Irrigate tomato field (drip)',field:'tomato',cat:'irrigation',due:day(1),prio:'med',st:'pending',why:'Scheduled in the demo irrigation plan.'},
+ {id:3,title:'Apply planned nutrient top-dressing (tomato)',field:'tomato',cat:'fertiliser',due:day(2),prio:'med',st:'pending',why:'Planned application. Check forecast rain first; use quantities from a local recommendation.'}],
+ insp:[{id:1,date:day(-7),field:'tomato',sc:'A',label:'Possible fungal leaf disease',outcome:'',demo:true}],
+ soil:{ph:6.4,moisture:28,n:'',p:'',k:'',date:day(-10),src:'Demo sample'},
+ irr:[{date:day(-3),field:'tomato',litres:'',note:'Drip, regular cycle (demo)'}]});
+let S;try{S=JSON.parse(localStorage.getItem(K))||seed()}catch(e){S=seed()}
+const save=()=>localStorage.setItem(K,JSON.stringify(S));
+let V='home',W=null,werr=null,wload=false,DAYS=[],PL=[];
+let D={field:'tomato',sc:'A',files:[],res:null};
+
+/* ---------- demo scenarios (preset examples, NOT real image analysis) ---------- */
+const SC={
+A:{name:'Tomato: leaf spots',label:'Possible fungal leaf disease',seen:'Brown spots with yellow edges on lower leaves (illustrative).',unc:'High. A photo cannot confirm a disease.',
+ alts:[['Possible fungal leaf disease','Spots on lower leaves fit; humid or wet spells would strengthen this.'],['Nutrient deficiency','Spotting (not even yellowing) weakens this. A soil test is needed to confirm.'],['Water stress','Regular drip irrigation weakens this.']],
+ act:['Inspect 10-15 nearby plants, lower leaves first.','Remove and bag badly affected leaves. Avoid handling wet plants.','Keep leaves dry and check drainage.','Take a sample to a local agriculture office or KVK for confirmation before choosing any spray.'],
+ prev:['Monitor more closely in humid or rainy spells.','Improve spacing and airflow.','Record whether the condition improved.'],re:3},
+B:{name:'Tomato: wilting',label:'Possible water stress',seen:'Leaves drooping at midday (illustrative).',unc:'Moderate. Check whether plants recover after watering.',
+ alts:[['Possible water stress','Midday wilting and low forecast rain fit.'],['Root or wilt disease','If plants do not recover after watering, this becomes more likely.'],['Heat stress','Hot afternoons can cause temporary wilting.']],
+ act:['Check soil by hand 10 cm deep before watering.','If dry, irrigate in early morning or evening.','Consider mulching to hold moisture.','If plants stay wilted after watering, get expert confirmation.'],
+ prev:['Keep a regular irrigation record.','Watch the forecast for hot, dry spells.'],re:2},
+C:{name:'Soybean: yellowing',label:'Possible nutrient deficiency',seen:'Even yellowing of older leaves (illustrative).',unc:'High. Photos cannot show soil chemistry.',
+ alts:[['Possible nutrient deficiency','Even yellowing of older leaves fits. Needs a soil test.'],['Water stress or waterlogging','Check recent rain and drainage.'],['Natural ageing','Older leaves yellow near maturity.']],
+ act:['Get a laboratory soil test to confirm.','Follow a local (KVK) recommendation for any nutrient.','Avoid applying fertiliser just before heavy rain.'],
+ prev:['Record each nutrient application.','Test soil before changing the nutrient plan.'],re:7}};
+
+/* ---------- weather ---------- */
+async function loadW(){wload=true;werr=null;draw();
+ try{const L=S.loc,u=`https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&hourly=temperature_2m,relative_humidity_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7`;
+ const r=await fetch(u);if(!r.ok)throw new Error('Weather service returned '+r.status);
+ W=await r.json();W.fetched=new Date().toLocaleString();
+ DAYS=W.daily.time.map((d,i)=>{const h=W.hourly.relative_humidity_2m.slice(i*24,i*24+24).filter(x=>x!=null);
+  return{date:d,tmax:W.daily.temperature_2m_max[i],tmin:W.daily.temperature_2m_min[i],rain:W.daily.precipitation_sum[i],prob:W.daily.precipitation_probability_max[i],wind:W.daily.wind_speed_10m_max[i],hum:h.length?Math.round(h.reduce((a,b)=>a+b,0)/h.length):null}})
+ }catch(e){W=null;DAYS=[];werr=e.message||'Could not load forecast'}
+ wload=false;draw()}
+
+/* rule-based plan (crop-aware wording; these are risk rules, not diagnoses) */
+function planDay(d,crop){const o=[];
+ if(d.rain!=null&&(d.rain>=10||d.prob>=70))o.push({p:d.rain>=25?'hi':'med',t:'Review irrigation and drainage',w:`Rain expected (${d.rain} mm, ${d.prob??'?'}% chance). Skip watering if soil is already moist, check that ${crop.toLowerCase()} field drains, and hold fertiliser to limit runoff.`});
+ if(d.tmax!=null&&d.tmax>=35&&(d.rain==null||d.rain<2))o.push({p:'med',t:'Check soil moisture and heat stress',w:`Hot and dry (max ${d.tmax}°C). Check for wilting and plan watering for early morning or evening.`});
+ if(d.hum!=null&&d.hum>=80&&d.tmax!=null&&d.tmax<=32)o.push({p:'med',t:'Increase disease monitoring',w:`Average humidity ${d.hum}% with mild temperatures can favour fungal leaf problems. This is a risk signal, not a diagnosis. Inspect the crop.`,link:1});
+ if(d.wind!=null&&d.wind>=30)o.push({p:'med',t:'Postpone spraying and staking',w:`Wind up to ${d.wind} km/h. Avoid weather-sensitive jobs.`});
+ if(!o.length)o.push({p:'low',t:'Routine inspection and field upkeep',w:'No notable weather risk for this day.'});
+ return o}
+function risks(){if(!DAYS.length)return['Heat stress','Water stress','Rain-related','Disease-conducive','Operations'].map(n=>[n,'Insufficient','Forecast not loaded.']);
+ const mx=Math.max(...DAYS.map(d=>d.tmax??-99)),rain=DAYS.reduce((a,d)=>a+(d.rain||0),0),wet=Math.max(...DAYS.map(d=>d.rain||0)),dis=DAYS.filter(d=>d.hum>=80&&d.tmax<=32&&(d.rain||0)>=1).length,wind=Math.max(...DAYS.map(d=>d.wind||0));
+ const L=(c1,c2)=>c2?'High':c1?'Moderate':'Low';
+ return[['Heat stress',L(mx>=34,mx>=38),`Highest forecast temperature ${mx}°C.`],
+ ['Water stress',L(rain<5&&mx>=32,rain<2&&mx>=36),`${rain.toFixed(1)} mm rain forecast over 7 days.`],
+ ['Rain-related',L(wet>=10,wet>=25),`Wettest day ${wet} mm.`],
+ ['Disease-conducive',L(dis>=1,dis>=3),`${dis} humid, mild, rainy day(s) forecast. Rule-based signal only.`],
+ ['Operations',L(wind>=30||wet>=15,wind>=45||wet>=40),`Wind up to ${wind} km/h.`]]}
+function conflicts(){if(!DAYS.length)return[];const wet=DAYS.slice(0,3).some(d=>(d.rain||0)>=10);if(!wet)return[];
+ return S.tasks.filter(x=>x.st==='pending'&&(x.cat==='irrigation'||x.cat==='fertiliser')&&x.due<=day(2)).map(x=>`${x.title}: heavy rain is forecast within 3 days. ${x.cat==='irrigation'?'Consider skipping or postponing.':'Consider postponing to limit runoff.'}`)}
+
+/* ---------- views ---------- */
+const prioTag=p=>p==='hi'?'High':p==='med'?'Medium':'Low';
+function taskCard(x,acts=true){return`<div class="card ${x.prio}"><div class="row"><h3 style="margin:0">${esc(x.title)}</h3><span class="tag">${prioTag(x.prio)}</span></div>
+<p class="s">${esc(FIELDS[x.field]?.n||'Farm')} · due ${esc(x.due)}</p><p>${esc(x.why)}</p>
+${acts?`<div class="row"><button class="p sm" data-a="done" data-id="${x.id}">${t('done')}</button><button class="q sm" data-a="later" data-id="${x.id}">${t('later')}</button><button class="q sm" data-a="del" data-id="${x.id}">Delete</button></div>`:''}</div>`}
+const wxBox=()=>wload?'<p>Loading forecast...</p>':werr?`<div class="note warn">Could not load live weather: ${esc(werr)}. No weather data is being shown. <button class="q sm" data-a="refresh">Try again</button></div>`:'';
+
+function vHome(){const c=W?.current,pend=S.tasks.filter(x=>x.st==='pending').sort((a,b)=>a.due.localeCompare(b.due)).slice(0,4);
+ return`<div class="top"><div><h1 style="margin:0">KisanSaathi</h1><p class="s">${t('tag')}</p></div><span class="badge">${t('demo')}</span></div>
+<div class="hero"><p class="s">Patil Farm · ${esc(S.loc.name)} · demo farm</p>
+${c?`<div class="big">${c.temperature_2m}°C</div><p>Humidity ${c.relative_humidity_2m}% · Wind ${c.wind_speed_10m} km/h · live from Open-Meteo, ${esc(W.fetched)}</p>`:`<p>${wload?'Loading live weather...':'Live weather not available.'}</p>`}
+<div class="row">${Object.values(FIELDS).map(f=>`<span class="tag">${f.crop}: ${f.stage}</span>`).join('')}</div></div>
+${wxBox()}
+${conflicts().map(c=>`<div class="note warn">⚠ ${esc(c)}</div>`).join('')}
+<h2>${t('today')}</h2>${pend.length?pend.map(x=>taskCard(x)).join(''):'<div class="card">Nothing pending. Upload a crop photo or check the 7-day plan.</div>'}
+<div class="grid"><button class="card" data-v="doctor">📷 Upload crop images</button><button class="card" data-v="weather">⛅ Check weather and plan</button><button class="card" data-v="soil">💧 Review soil and irrigation</button></div>
+<button class="q sm" data-a="reset">${t('reset')}</button>`}
+
+function vDoctor(){const f=FIELDS[D.field],r=D.res,sc=r&&(r.live?r.data:SC[r.sc]);
+ return`<h2>${t('doctor')}</h2>
+${D.err?`<div class="note warn">${esc(D.err)}</div>`:''}<div class="note">${r&&r.live?'Live AI analysis of your photos. This is a model-generated hypothesis, not a diagnosis.':'Demo mode: results are a <b>preset example</b>, not an analysis of your photos. Run the server with an API key for live analysis.'}</div>
+<div class="card"><div class="grid"><div><label>Field</label><select data-f="field">${Object.entries(FIELDS).map(([k,v])=>`<option value="${k}" ${D.field===k?'selected':''}>${v.n}</option>`).join('')}</select></div>
+<div><label>Demo example</label><select data-f="sc">${Object.entries(SC).map(([k,v])=>`<option value="${k}" ${D.sc===k?'selected':''}>${v.name}</option>`).join('')}</select></div></div>
+<p class="s">${f.crop} · ${f.stage} · ${f.irr} · ${f.area}</p>
+<label>Photos (whole plant, leaf close-up, stem, fruit). JPEG, PNG or WebP, up to 8 MB each.</label>
+<input type="file" id="files" accept="image/jpeg,image/png,image/webp" multiple>
+<div class="thumbs" style="margin:10px 0">${D.files.map((x,i)=>`<div><img src="${x.url}" alt="${esc(x.name)}"><button data-a="rm" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')}</div>
+<button class="p" data-a="run" ${D.busy?'disabled':''}>${D.busy?'Analysing...':(D.files.length?'Analyse photos':t('run'))}</button></div>
+${r?`<div class="card"><h3>What data was used</h3><ul><li>Images: ${D.files.length||'none'} uploaded ${r.live?'(analysed by AI)':'(not analysed in demo mode)'}</li>
+<li>Weather: ${DAYS.length?'live forecast loaded':'not available'}</li><li>Soil: ${S.soil.date?`entered ${esc(S.soil.date)} (${esc(S.soil.src)})`:'not available'}</li><li>Irrigation records: ${S.irr.length}</li></ul></div>
+<div class="card"><span class="tag">${r.live?'AI analysis':'Demo example'}</span><h3>What we found</h3><p><b>${esc(sc.label)}</b> (suspected, not confirmed)</p><p class="s">Seen: ${esc(sc.seen)}</p><p>Uncertainty: ${esc(sc.unc)}</p>
+<h3>Other possible causes</h3><ul>${sc.alts.map(a=>`<li><b>${esc(a[0])}:</b> ${esc(a[1])}</li>`).join('')}</ul>
+${DAYS.length?`<p class="s">Forecast context: next 3 days humidity ${DAYS.slice(0,3).map(d=>d.hum+'%').join(', ')}, rain ${DAYS.slice(0,3).map(d=>(d.rain??'?')+' mm').join(', ')}.</p>`:''}
+<h3>What to do now</h3><ul>${sc.act.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+<h3>How to prevent a repeat</h3><ul>${sc.prev.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+<p>Check again in <b>${sc.re} days</b>. Chemical treatment: use only locally approved product labels or an authorised expert's advice.</p>
+<p class="s">Laboratory testing or expert confirmation is needed before treating.</p>
+<div class="row"><button class="p" data-a="follow">Add follow-up to plan</button><button class="q" data-a="saveinsp">${t('save')}</button></div></div>`:''}`}
+
+function vWeather(){const c=W?.current;let h='';
+ if(W){const i=Math.max(0,W.hourly.time.findIndex(x=>x>=W.current.time.slice(0,13)));h=`<div class="strip">${[0,3,6,9,12,15,18,21].map(k=>i+k).filter(k=>k<W.hourly.time.length).map(k=>`<div><b>${W.hourly.time[k].slice(11,16)}</b><br>${W.hourly.temperature_2m[k]}°<br><span class="s">${W.hourly.precipitation_probability[k]}% rain</span></div>`).join('')}</div>`}
+ PL=DAYS.map(d=>planDay(d,FIELDS.tomato.crop));
+ return`<div class="top"><h2>${t('weather')}</h2><button class="q sm" data-a="refresh">${t('refresh')}</button></div>
+<form class="row" data-form="loc"><input name="q" placeholder="Search village or town" aria-label="Location"><button class="q sm">Change location</button></form>
+<p class="s">Location: ${esc(S.loc.name)}</p>${wxBox()}
+${W?`<div class="card"><p class="s">Source: Open-Meteo · fetched ${esc(W.fetched)}</p><p><b>Now:</b> ${c.temperature_2m}°C, humidity ${c.relative_humidity_2m}%, wind ${c.wind_speed_10m} km/h</p><h3>Next 24 hours</h3>${h}</div>
+<h2>${t('plan')}</h2><p class="s">Rule-based, written for the tomato field. Forecasts are uncertain. These are risk signals, not diagnoses.</p>
+${DAYS.map((d,i)=>`<div class="card ${PL[i][0].p}"><h3>${esc(d.date)}: ${d.tmin}–${d.tmax}°C, rain ${d.rain??'?'} mm (${d.prob??'?'}%)</h3>
+${PL[i].map((x,j)=>`<p><b>${esc(x.t)}</b> <span class="tag">${prioTag(x.p)}</span><br>${esc(x.w)}</p><div class="row"><button class="q sm" data-a="addplan" data-i="${i}" data-j="${j}">Add to calendar</button>${x.link?'<button class="q sm" data-v="doctor">Open Crop Doctor</button>':''}</div>`).join('')}</div>`).join('')}
+<h2>Risk panel</h2><div class="grid">${risks().map(r=>`<div class="card"><b>${r[0]}</b> <span class="tag ${r[1]}">${r[1]}</span><p class="s">${esc(r[2])}</p></div>`).join('')}</div>`:''}`}
+
+function vTasks(){const p=S.tasks.filter(x=>x.st==='pending').sort((a,b)=>a.due.localeCompare(b.due)),dn=S.tasks.filter(x=>x.st==='done');
+ const L=S.insp.filter(x=>x.field===D.field||true);
+ const cmp=f=>{const a=S.insp.filter(x=>x.field===f).sort((x,y)=>x.date.localeCompare(y.date));if(a.length<2)return'';const o=a[a.length-2],n=a[a.length-1];
+  return`<p class="s">Compare: ${esc(o.date)} "${esc(o.label)}" → ${esc(n.date)} "${esc(n.label)}". ${n.outcome?'Recorded outcome: '+esc(n.outcome)+'.':'No outcome recorded, so no improvement is claimed.'}</p>`};
+ return`<h2>${t('tasks')}</h2>${conflicts().map(c=>`<div class="note warn">⚠ ${esc(c)}</div>`).join('')}
+<form class="card row" data-form="task"><input name="title" placeholder="New task" required aria-label="Task title"><input type="date" name="due" value="${day(0)}"><select name="cat"><option>inspection</option><option>irrigation</option><option>fertiliser</option><option>soil test</option></select><button class="p">Add task</button></form>
+<h3>Pending (${p.length})</h3>${p.length?p.map(x=>taskCard(x)).join(''):'<div class="card">No pending tasks.</div>'}
+<h3>History</h3>${dn.length?dn.map(x=>taskCard(x,false)).join(''):'<div class="card s">Completed tasks appear here.</div>'}
+<h3>Saved inspections</h3>${S.insp.length?S.insp.map(x=>`<div class="card"><b>${esc(x.label)}</b> ${x.demo?'<span class="tag">Demo example</span>':''}<p class="s">${esc(FIELDS[x.field].n)} · ${esc(x.date)}</p>
+<label>Outcome at follow-up</label><select data-oc="${x.id}">${['','Improved','No change','Worse'].map(o=>`<option ${x.outcome===o?'selected':''} value="${o}">${o||'Not recorded'}</option>`).join('')}</select></div>`).join(''):'<div class="card">No inspections saved.</div>'}
+${Object.keys(FIELDS).map(cmp).join('')}`}
+
+function vSoil(){const s=S.soil,v=(x,u='')=>x===''||x==null?'<span class="s">Not available</span>':esc(x)+u;
+ let tip='No soil moisture reading. Check soil by hand before irrigating.';
+ if(DAYS.slice(0,2).some(d=>(d.rain||0)>=10))tip='Heavy rain is forecast within 2 days. Hold off on irrigation and check drainage.';
+ else if(s.moisture!==''&&s.moisture!=null)tip=s.moisture<25?`Moisture ${s.moisture}% (${esc(s.src)}, ${esc(s.date)}) looks low. Check by hand and consider irrigating at a cool time of day.`:`Moisture ${s.moisture}% (${esc(s.src)}, ${esc(s.date)}). No irrigation signal from this reading. Quantities need crop-water data, so none is suggested.`;
+ return`<h2>${t('soil')}</h2><div class="card"><h3>Latest soil record</h3><p class="s">Source: ${esc(s.src)} · ${esc(s.date)}</p>
+<div class="grid"><p>pH: ${v(s.ph)}</p><p>Moisture: ${v(s.moisture,'%')}</p><p>Nitrogen: ${v(s.n,' kg/ha')}</p><p>Phosphorus: ${v(s.p,' kg/ha')}</p><p>Potassium: ${v(s.k,' kg/ha')}</p></div></div>
+<form class="card" data-form="soil"><h3>Enter soil values</h3><div class="grid"><div><label>pH</label><input name="ph" type="number" step="0.1" min="0" max="14"></div><div><label>Moisture %</label><input name="moisture" type="number" min="0" max="100"></div><div><label>N kg/ha</label><input name="n" type="number" min="0"></div><div><label>P kg/ha</label><input name="p" type="number" min="0"></div><div><label>K kg/ha</label><input name="k" type="number" min="0"></div>
+<div><label>Source</label><select name="src"><option>Measured</option><option>Laboratory report</option><option>Estimated</option></select></div></div><p class="s">Leave blank if unknown. Blank is stored as "not available", never zero.</p><button class="p">Save soil record</button></form>
+<div class="card"><h3>Irrigation suggestion</h3><p>${tip}</p></div>
+<form class="card row" data-form="irr"><input type="date" name="date" value="${day(0)}"><select name="field">${Object.entries(FIELDS).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('')}</select><input name="litres" type="number" min="0" placeholder="Litres (optional)"><button class="p">Log irrigation</button></form>
+${S.irr.slice().reverse().map(x=>`<div class="card s">${esc(x.date)} · ${esc(FIELDS[x.field].n)} · ${x.litres?esc(x.litres)+' L':'amount not recorded'} ${esc(x.note||'')}</div>`).join('')}`}
+
+const VIEWS={home:vHome,doctor:vDoctor,weather:vWeather,tasks:vTasks,soil:vSoil};
+function draw(){const ic={home:'🏠',doctor:'🌿',weather:'⛅',tasks:'✅',soil:'💧'};
+ $('#nav').innerHTML=`<div class="logo">🌱 KisanSaathi</div>`+Object.keys(VIEWS).map(k=>`<button data-v="${k}" class="${V===k?'on':''}"><b>${ic[k]}</b>${t(k)}</button>`).join('')+`<select data-lang aria-label="Language" style="margin:6px"><option value="en">English</option><option value="hi" ${S.lang==='hi'?'selected':''}>हिन्दी</option><option value="mr" ${S.lang==='mr'?'selected':''}>मराठी</option></select>`;
+ $('#app').innerHTML=VIEWS[V]()}
+function toast(m){const e=$('#toast');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+function addTask(x){if(S.tasks.some(y=>y.st==='pending'&&y.title===x.title&&y.due===x.due))return toast('Already in your plan');S.tasks.push({id:Date.now()+Math.random(),st:'pending',...x});save();toast('Added to calendar')}
+
+const cur=()=>D.res.live?D.res.data:SC[D.res.sc];
+async function runAnalysis(){D.err=null;
+ if(!D.files.length){D.res={sc:D.sc,field:D.field};return draw()}
+ D.busy=true;D.res=null;draw();
+ try{
+  const shrink=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok({type:'image/jpeg',data:c.toDataURL('image/jpeg',.8).split(',')[1]})};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Could not read '+f.name))};im.src=u});
+  if(D.files.length>4)throw new Error('Use at most 4 photos');
+  const imgs=await Promise.all(D.files.map(x=>shrink(x.file)));
+  const f=FIELDS[D.field],ctx={crop:f.crop,stage:f.stage,irrigation:f.irr,location:S.loc.name,soil:S.soil,forecast_next_3_days:DAYS.slice(0,3)};
+  const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imgs,context:ctx})});
+  if(r.status===503){D.err='Live AI is not configured (no API key), so a preset demo example is shown instead.';D.res={sc:D.sc,field:D.field}}
+  else{const j=await r.json();if(!r.ok)throw new Error(j.error||'Analysis failed');D.res={live:true,field:D.field,data:j}}
+ }catch(e){
+  if(e instanceof TypeError){D.err='Could not reach the server (start it with npm start), so a preset demo example is shown instead.';D.res={sc:D.sc,field:D.field}}
+  else D.err='Analysis failed: '+e.message+'. Your photos are kept. Try again.'}
+ D.busy=false;draw()}
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-v],[data-a]');if(!b)return;
+ if(b.dataset.v){V=b.dataset.v;draw();scrollTo(0,0);return}
+ const a=b.dataset.a,id=Number(b.dataset.id),x=S.tasks.find(y=>y.id===id);
+ if(a==='done'&&x){x.st='done';x.doneOn=day(0);save();toast('Marked completed')}
+ else if(a==='later'&&x){const d=new Date(x.due+'T00:00');d.setDate(d.getDate()+1);x.due=d.toLocaleDateString('en-CA');save();toast('Moved to tomorrow')}
+ else if(a==='del'){S.tasks=S.tasks.filter(y=>y.id!==id);save()}
+ else if(a==='refresh'){return loadW()}
+ else if(a==='reset'){if(confirm('Reset all demo data?')){const l=S.lang;S=seed();S.lang=l;D.res=null;save();toast('Demo data reset')}}
+ else if(a==='rm'){URL.revokeObjectURL(D.files[b.dataset.i].url);D.files.splice(b.dataset.i,1)}
+ else if(a==='run'){return runAnalysis()}
+ else if(a==='follow'){const s=cur();addTask({title:`Follow-up inspection: ${FIELDS[D.res.field].crop}`,field:D.res.field,cat:'inspection',due:day(s.re),prio:'med',why:`Re-check after "${s.label}" example. Record whether the condition improved.`})}
+ else if(a==='saveinsp'){S.insp.push({id:Date.now(),date:day(0),field:D.res.field,sc:D.res.sc,label:cur().label,outcome:'',demo:!D.res.live});save();toast('Inspection saved')}
+ else if(a==='addplan'){const d=DAYS[b.dataset.i],p=PL[b.dataset.i][b.dataset.j];addTask({title:p.t,field:'tomato',cat:/irrig/i.test(p.t)?'irrigation':'inspection',due:d.date,prio:p.p,why:p.w})}
+ draw()});
+document.addEventListener('change',e=>{const el=e.target;
+ if(el.id==='files'){for(const f of el.files){if(!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>8e6){toast('Skipped '+f.name+': use JPEG, PNG or WebP under 8 MB');continue}D.files.push({name:f.name,url:URL.createObjectURL(f),file:f})}draw()}
+ else if(el.dataset.f){D[el.dataset.f]=el.value;D.res=null;draw()}
+ else if(el.dataset.lang!==undefined){S.lang=el.value;save();draw()}
+ else if(el.dataset.oc){S.insp.find(x=>x.id==el.dataset.oc).outcome=el.value;save();draw()}});
+document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,n=f.dataset.form,d=Object.fromEntries(new FormData(f));
+ if(n==='task'){addTask({title:d.title.trim(),field:'tomato',cat:d.cat,due:d.due,prio:'med',why:'Added by you.'})}
+ else if(n==='soil'){S.soil={ph:d.ph,moisture:d.moisture===''?'':Number(d.moisture),n:d.n,p:d.p,k:d.k,date:day(0),src:d.src};save();toast('Soil record saved')}
+ else if(n==='irr'){S.irr.push({date:d.date,field:d.field,litres:d.litres,note:''});save();toast('Irrigation logged')}
+ else if(n==='loc'&&d.q.trim()){try{const r=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(d.q))).json();const p=r.results?.[0];
+  if(!p)return toast('Place not found');S.loc={name:[p.name,p.admin1].filter(Boolean).join(', '),lat:p.latitude,lon:p.longitude};save();return loadW()}catch(x){return toast('Location search failed')}}
+ draw()});
+draw();loadW();
+</script></body></html>
