@@ -51,9 +51,9 @@ const K='ks_proto_v1';
 
 /* ---------- translations (one dictionary) ---------- */
 const TX={
-en:{home:'Home',doctor:'Crop Doctor',weather:'Weather & Plan',tasks:'Tasks',soil:'Soil & Water',demo:'Demo data',tag:'Smarter Farming. Better Decisions. Healthier Crops.',today:'What should I do today?',run:'Run demo analysis',save:'Save inspection',done:'Mark completed',later:'Remind me later',plan:'Your Farm Plan for the Next 7 Days',refresh:'Refresh forecast',reset:'Reset demo data'},
-hi:{home:'होम',doctor:'फसल डॉक्टर',weather:'मौसम व योजना',tasks:'कार्य',soil:'मिट्टी व सिंचाई',demo:'डेमो डेटा',tag:'स्मार्ट खेती। बेहतर फैसले। स्वस्थ फसल।',today:'आज क्या करें?',run:'डेमो जांच चलाएं',save:'जांच सहेजें',done:'पूरा हुआ',later:'बाद में याद दिलाएं',plan:'अगले 7 दिनों की खेत योजना',refresh:'पूर्वानुमान रीफ्रेश करें',reset:'डेमो डेटा रीसेट करें'},
-mr:{home:'मुख्यपृष्ठ',doctor:'पीक डॉक्टर',weather:'हवामान व योजना',tasks:'कामे',soil:'माती व सिंचन',demo:'डेमो डेटा',tag:'स्मार्ट शेती. चांगले निर्णय. निरोगी पीक.',today:'आज काय करावे?',run:'डेमो तपासणी करा',save:'तपासणी जतन करा',done:'पूर्ण झाले',later:'नंतर आठवण करा',plan:'पुढील ७ दिवसांची शेती योजना',refresh:'अंदाज रिफ्रेश करा',reset:'डेमो डेटा रीसेट करा'}};
+en:{home:'Home',doctor:'Crop Doctor',weather:'Weather & Plan',tasks:'Tasks',soil:'Soil & Water',recommend:'Crop Recommendation',demo:'Demo data',tag:'Smarter Farming. Better Decisions. Healthier Crops.',today:'What should I do today?',run:'Run demo analysis',save:'Save inspection',done:'Mark completed',later:'Remind me later',plan:'Your Farm Plan for the Next 7 Days',refresh:'Refresh forecast',reset:'Reset demo data'},
+hi:{home:'होम',doctor:'फसल डॉक्टर',weather:'मौसम व योजना',tasks:'कार्य',soil:'मिट्टी व सिंचाई',recommend:'फसल सुझाव',demo:'डेमो डेटा',tag:'स्मार्ट खेती। बेहतर फैसले। स्वस्थ फसल।',today:'आज क्या करें?',run:'डेमो जांच चलाएं',save:'जांच सहेजें',done:'पूरा हुआ',later:'बाद में याद दिलाएं',plan:'अगले 7 दिनों की खेत योजना',refresh:'पूर्वानुमान रीफ्रेश करें',reset:'डेमो डेटा रीसेट करें'},
+mr:{home:'मुख्यपृष्ठ',doctor:'पीक डॉक्टर',weather:'हवामान व योजना',tasks:'कामे',soil:'माती व सिंचन',recommend:'पीक शिफारस',demo:'डेमो डेटा',tag:'स्मार्ट शेती. चांगले निर्णय. निरोगी पीक.',today:'आज काय करावे?',run:'डेमो तपासणी करा',save:'तपासणी जतन करा',done:'पूर्ण झाले',later:'नंतर आठवण करा',plan:'पुढील ७ दिवसांची शेती योजना',refresh:'अंदाज रिफ्रेश करा',reset:'डेमो डेटा रीसेट करा'}};
 const t=k=>(TX[S.lang]||TX.en)[k]||TX.en[k]||k;
 
 /* ---------- state ---------- */
@@ -190,8 +190,36 @@ function vSoil(){const s=S.soil,v=(x,u='')=>x===''||x==null?'<span class="s">Not
 <form class="card row" data-form="irr"><input type="date" name="date" value="${day(0)}"><select name="field">${Object.entries(FIELDS).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('')}</select><input name="litres" type="number" min="0" placeholder="Litres (optional)"><button class="p">Log irrigation</button></form>
 ${S.irr.slice().reverse().map(x=>`<div class="card s">${esc(x.date)} · ${esc(FIELDS[x.field].n)} · ${x.litres?esc(x.litres)+' L':'amount not recorded'} ${esc(x.note||'')}</div>`).join('')}`}
 
-const VIEWS={home:vHome,doctor:vDoctor,weather:vWeather,tasks:vTasks,soil:vSoil};
-function draw(){const ic={home:'🏠',doctor:'🌿',weather:'⛅',tasks:'✅',soil:'💧'};
+/* Dataset-based crop recommendation: standardized 7-nearest-neighbours. */
+let CROP_ROWS=null, CROP_ERROR='', CROP_RESULT=null;
+const CROP_KEYS=['N','P','K','temperature','humidity','ph','rainfall'];
+async function loadCropData(){
+ if(CROP_ROWS||CROP_ERROR)return;
+ try{const r=await fetch('/data/crop_recommendation.csv');if(!r.ok)throw new Error('Dataset HTTP '+r.status);
+ const txt=await r.text();const lines=txt.trim().split(/\r?\n/);const cols=lines.shift().split(',').map(x=>x.trim());
+ const ids=[...CROP_KEYS,'label'].map(k=>cols.indexOf(k));if(ids.some(i=>i<0))throw new Error('Dataset columns are missing');
+ CROP_ROWS=lines.map(line=>{const cells=line.split(',');return {v:ids.slice(0,7).map(i=>Number(cells[i])),crop:cells[ids[7]].trim()}}).filter(x=>x.crop&&x.v.every(Number.isFinite));
+ if(!CROP_ROWS.length)throw new Error('No usable dataset rows');
+ }catch(e){CROP_ERROR=e.message}draw();
+}
+function cropPredict(vals){
+ const means=CROP_KEYS.map((_,i)=>CROP_ROWS.reduce((sum,r)=>sum+r.v[i],0)/CROP_ROWS.length);
+ const sd=means.map((m,i)=>Math.sqrt(CROP_ROWS.reduce((sum,r)=>sum+(r.v[i]-m)**2,0)/CROP_ROWS.length)||1);
+ const near=CROP_ROWS.map(r=>({crop:r.crop,d:r.v.reduce((sum,v,i)=>sum+((v-vals[i])/sd[i])**2,0)})).sort((a,b)=>a.d-b.d).slice(0,7);
+ const counts={};near.forEach(x=>counts[x.crop]=(counts[x.crop]||0)+1);
+ const ranked=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+ return {crop:ranked[0][0],alternatives:ranked.slice(1).map(x=>x[0]),votes:ranked[0][1]};
+}
+function vRecommend(){
+ const names=['Nitrogen (N)','Phosphorus (P)','Potassium (K)','Temperature (°C)','Humidity (%)','Soil pH','Rainfall (mm)'];
+ const samples=[90,42,43,21,82,6.5,203];
+ return `<h2>🌾 ${t('recommend')}</h2><div class="note">Dataset-based KNN prediction using 2,200 crop examples. This is a demonstration, not a verified agronomic recommendation. Enter measurements with units matching the dataset; soil nutrient units are not documented in the source CSV.</div>
+ <form class="card" data-form="crop"><h3>Enter soil and weather measurements</h3><div class="grid">${CROP_KEYS.map((k,i)=>`<div><label for="crop_${k}">${names[i]}</label><input id="crop_${k}" name="${k}" type="number" step="any" required min="0" ${k==='ph'?'max="14"':k==='humidity'?'max="100"':''} value="${samples[i]}"></div>`).join('')}</div><p class="s">Values are prefilled with an illustrative example. Replace them with actual readings.</p><button class="p" ${CROP_ERROR||!CROP_ROWS?'disabled':''}>Recommend crop</button></form>
+ ${CROP_ERROR?`<div class="note warn">Could not load dataset: ${esc(CROP_ERROR)}</div>`:!CROP_ROWS?'<p>Loading crop dataset...</p>':`<p class="s">Dataset loaded: ${CROP_ROWS.length} examples.</p>`}
+ ${CROP_RESULT?`<div class="card"><span class="tag">Dataset prediction</span><h3>Suggested crop: ${esc(CROP_RESULT.crop)}</h3><p>Nearest examples agreeing: ${CROP_RESULT.votes} of 7. This is not a calibrated confidence score.</p>${CROP_RESULT.alternatives.length?`<p>Other nearby crop labels: ${CROP_RESULT.alternatives.map(esc).join(', ')}</p>`:''}<p class="s">Confirm suitability with local soil testing, water availability, season, and an agricultural expert before planting.</p></div>`:''}`;
+}
+const VIEWS={home:vHome,doctor:vDoctor,weather:vWeather,tasks:vTasks,soil:vSoil,recommend:vRecommend};
+function draw(){const ic={home:'🏠',doctor:'🌿',weather:'⛅',tasks:'✅',soil:'💧',recommend:'🌾'};
  $('#nav').innerHTML=`<div class="logo">🌱 KisanSaathi</div>`+Object.keys(VIEWS).map(k=>`<button data-v="${k}" class="${V===k?'on':''}"><b>${ic[k]}</b>${t(k)}</button>`).join('')+`<select data-lang aria-label="Language" style="margin:6px"><option value="en">English</option><option value="hi" ${S.lang==='hi'?'selected':''}>हिन्दी</option><option value="mr" ${S.lang==='mr'?'selected':''}>मराठी</option></select>`;
  $('#app').innerHTML=VIEWS[V]()}
 function toast(m){const e=$('#toast');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
@@ -236,10 +264,11 @@ document.addEventListener('change',e=>{const el=e.target;
  else if(el.dataset.oc){S.insp.find(x=>x.id==el.dataset.oc).outcome=el.value;save();draw()}});
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,n=f.dataset.form,d=Object.fromEntries(new FormData(f));
  if(n==='task'){addTask({title:d.title.trim(),field:'tomato',cat:d.cat,due:d.due,prio:'med',why:'Added by you.'})}
- else if(n==='soil'){S.soil={ph:d.ph,moisture:d.moisture===''?'':Number(d.moisture),n:d.n,p:d.p,k:d.k,date:day(0),src:d.src};save();toast('Soil record saved')}
+ else if(n==='crop'){if(!CROP_ROWS)return toast('Dataset not ready');const vals=CROP_KEYS.map(k=>Number(d[k]));if(vals.some(x=>!Number.isFinite(x)))return toast('Enter all values');CROP_RESULT=cropPredict(vals);}
+  else if(n==='soil'){S.soil={ph:d.ph,moisture:d.moisture===''?'':Number(d.moisture),n:d.n,p:d.p,k:d.k,date:day(0),src:d.src};save();toast('Soil record saved')}
  else if(n==='irr'){S.irr.push({date:d.date,field:d.field,litres:d.litres,note:''});save();toast('Irrigation logged')}
  else if(n==='loc'&&d.q.trim()){try{const r=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(d.q))).json();const p=r.results?.[0];
   if(!p)return toast('Place not found');S.loc={name:[p.name,p.admin1].filter(Boolean).join(', '),lat:p.latitude,lon:p.longitude};save();return loadW()}catch(x){return toast('Location search failed')}}
  draw()});
-draw();loadW();
+draw();loadW();loadCropData();
 </script></body></html>
