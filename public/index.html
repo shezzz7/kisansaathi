@@ -49,14 +49,12 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const day=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
 const K='ks_proto_v1';
 
-
 /* ---------- translations (one dictionary) ---------- */
 const TX={
 en:{home:'Home',doctor:'Crop Doctor',weather:'Weather & Plan',tasks:'Tasks',soil:'Soil & Water',recommend:'Crop Recommendation',demo:'Demo data',tag:'Smarter Farming. Better Decisions. Healthier Crops.',today:'What should I do today?',run:'Run demo analysis',save:'Save inspection',done:'Mark completed',later:'Remind me later',plan:'Your Farm Plan for the Next 7 Days',refresh:'Refresh forecast',reset:'Reset demo data'},
 hi:{home:'होम',doctor:'फसल डॉक्टर',weather:'मौसम व योजना',tasks:'कार्य',soil:'मिट्टी व सिंचाई',recommend:'फसल सुझाव',demo:'डेमो डेटा',tag:'स्मार्ट खेती। बेहतर फैसले। स्वस्थ फसल।',today:'आज क्या करें?',run:'डेमो जांच चलाएं',save:'जांच सहेजें',done:'पूरा हुआ',later:'बाद में याद दिलाएं',plan:'अगले 7 दिनों की खेत योजना',refresh:'पूर्वानुमान रीफ्रेश करें',reset:'डेमो डेटा रीसेट करें'},
 mr:{home:'मुख्यपृष्ठ',doctor:'पीक डॉक्टर',weather:'हवामान व योजना',tasks:'कामे',soil:'माती व सिंचन',recommend:'पीक शिफारस',demo:'डेमो डेटा',tag:'स्मार्ट शेती. चांगले निर्णय. निरोगी पीक.',today:'आज काय करावे?',run:'डेमो तपासणी करा',save:'तपासणी जतन करा',done:'पूर्ण झाले',later:'नंतर आठवण करा',plan:'पुढील ७ दिवसांची शेती योजना',refresh:'अंदाज रिफ्रेश करा',reset:'डेमो डेटा रीसेट करा'}};
 const t=k=>(TX[S.lang]||TX.en)[k]||TX.en[k]||k;
-
 
 /* ---------- state ---------- */
 const FIELDS={tomato:{n:'Tomato field',crop:'Tomato',stage:'Flowering and fruit set',irr:'Drip',area:'1.2 acre'},soy:{n:'Soybean field',crop:'Soybean',stage:'Maturity',irr:'Rain-fed',area:'2 acre'}};
@@ -73,7 +71,6 @@ const save=()=>localStorage.setItem(K,JSON.stringify(S));
 let V='home',W=null,werr=null,wload=false,DAYS=[],PL=[];
 let D={field:'tomato',sc:'A',files:[],res:null};
 
-
 /* ---------- demo scenarios (preset examples, NOT real image analysis) ---------- */
 const SC={
 A:{name:'Tomato: leaf spots',label:'Possible fungal leaf disease',seen:'Brown spots with yellow edges on lower leaves (illustrative).',unc:'High. A photo cannot confirm a disease.',
@@ -89,17 +86,15 @@ C:{name:'Soybean: yellowing',label:'Possible nutrient deficiency',seen:'Even yel
  act:['Get a laboratory soil test to confirm.','Follow a local (KVK) recommendation for any nutrient.','Avoid applying fertiliser just before heavy rain.'],
  prev:['Record each nutrient application.','Test soil before changing the nutrient plan.'],re:7}};
 
-
 /* ---------- weather ---------- */
 async function loadW(){wload=true;werr=null;draw();
  try{const L=S.loc,u=`https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&hourly=temperature_2m,relative_humidity_2m,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=auto&forecast_days=7`;
  const r=await fetch(u);if(!r.ok)throw new Error('Weather service returned '+r.status);
  W=await r.json();W.fetched=new Date().toLocaleString();
  DAYS=W.daily.time.map((d,i)=>{const h=W.hourly.relative_humidity_2m.slice(i*24,i*24+24).filter(x=>x!=null);
- return{date:d,tmax:W.daily.temperature_2m_max[i],tmin:W.daily.temperature_2m_min[i],rain:W.daily.precipitation_sum[i],prob:W.daily.precipitation_probability_max[i],wind:W.daily.wind_speed_10m_max[i],hum:h.length?Math.round(h.reduce((a,b)=>a+b,0)/h.length):null}})
+  return{date:d,tmax:W.daily.temperature_2m_max[i],tmin:W.daily.temperature_2m_min[i],rain:W.daily.precipitation_sum[i],prob:W.daily.precipitation_probability_max[i],wind:W.daily.wind_speed_10m_max[i],hum:h.length?Math.round(h.reduce((a,b)=>a+b,0)/h.length):null}})
  }catch(e){W=null;DAYS=[];werr=e.message||'Could not load forecast'}
  wload=false;draw()}
-
 
 /* rule-based plan (crop-aware wording; these are risk rules, not diagnoses) */
 function planDay(d,crop){const o=[];
@@ -120,14 +115,12 @@ function risks(){if(!DAYS.length)return['Heat stress','Water stress','Rain-relat
 function conflicts(){if(!DAYS.length)return[];const wet=DAYS.slice(0,3).some(d=>(d.rain||0)>=10);if(!wet)return[];
  return S.tasks.filter(x=>x.st==='pending'&&(x.cat==='irrigation'||x.cat==='fertiliser')&&x.due<=day(2)).map(x=>`${x.title}: heavy rain is forecast within 3 days. ${x.cat==='irrigation'?'Consider skipping or postponing.':'Consider postponing to limit runoff.'}`)}
 
-
 /* ---------- views ---------- */
 const prioTag=p=>p==='hi'?'High':p==='med'?'Medium':'Low';
 function taskCard(x,acts=true){return`<div class="card ${x.prio}"><div class="row"><h3 style="margin:0">${esc(x.title)}</h3><span class="tag">${prioTag(x.prio)}</span></div>
 <p class="s">${esc(FIELDS[x.field]?.n||'Farm')} · due ${esc(x.due)}</p><p>${esc(x.why)}</p>
 ${acts?`<div class="row"><button class="p sm" data-a="done" data-id="${x.id}">${t('done')}</button><button class="q sm" data-a="later" data-id="${x.id}">${t('later')}</button><button class="q sm" data-a="del" data-id="${x.id}">Delete</button></div>`:''}</div>`}
 const wxBox=()=>wload?'<p>Loading forecast...</p>':werr?`<div class="note warn">Could not load live weather: ${esc(werr)}. No weather data is being shown. <button class="q sm" data-a="refresh">Try again</button></div>`:'';
-
 
 function vHome(){const c=W?.current,pend=S.tasks.filter(x=>x.st==='pending').sort((a,b)=>a.due.localeCompare(b.due)).slice(0,4);
  return`<div class="top"><div><h1 style="margin:0">KisanSaathi</h1><p class="s">${t('tag')}</p></div><span class="badge">${t('demo')}</span></div>
@@ -139,7 +132,6 @@ ${conflicts().map(c=>`<div class="note warn">⚠ ${esc(c)}</div>`).join('')}
 <h2>${t('today')}</h2>${pend.length?pend.map(x=>taskCard(x)).join(''):'<div class="card">Nothing pending. Upload a crop photo or check the 7-day plan.</div>'}
 <div class="grid"><button class="card" data-v="doctor">📷 Upload crop images</button><button class="card" data-v="weather">⛅ Check weather and plan</button><button class="card" data-v="soil">💧 Review soil and irrigation</button></div>
 <button class="q sm" data-a="reset">${t('reset')}</button>`}
-
 
 function vDoctor(){const f=FIELDS[D.field],r=D.res,sc=r&&(r.live?r.data:SC[r.sc]);
  return`<h2>${t('doctor')}</h2>
@@ -162,7 +154,6 @@ ${DAYS.length?`<p class="s">Forecast context: next 3 days humidity ${DAYS.slice(
 <p class="s">Laboratory testing or expert confirmation is needed before treating.</p>
 <div class="row"><button class="p" data-a="follow">Add follow-up to plan</button><button class="q" data-a="saveinsp">${t('save')}</button></div></div>`:''}`}
 
-
 function vWeather(){const c=W?.current;let h='';
  if(W){const i=Math.max(0,W.hourly.time.findIndex(x=>x>=W.current.time.slice(0,13)));h=`<div class="strip">${[0,3,6,9,12,15,18,21].map(k=>i+k).filter(k=>k<W.hourly.time.length).map(k=>`<div><b>${W.hourly.time[k].slice(11,16)}</b><br>${W.hourly.temperature_2m[k]}°<br><span class="s">${W.hourly.precipitation_probability[k]}% rain</span></div>`).join('')}</div>`}
  PL=DAYS.map(d=>planDay(d,FIELDS.tomato.crop));
@@ -175,11 +166,10 @@ ${DAYS.map((d,i)=>`<div class="card ${PL[i][0].p}"><h3>${esc(d.date)}: ${d.tmin}
 ${PL[i].map((x,j)=>`<p><b>${esc(x.t)}</b> <span class="tag">${prioTag(x.p)}</span><br>${esc(x.w)}</p><div class="row"><button class="q sm" data-a="addplan" data-i="${i}" data-j="${j}">Add to calendar</button>${x.link?'<button class="q sm" data-v="doctor">Open Crop Doctor</button>':''}</div>`).join('')}</div>`).join('')}
 <h2>Risk panel</h2><div class="grid">${risks().map(r=>`<div class="card"><b>${r[0]}</b> <span class="tag ${r[1]}">${r[1]}</span><p class="s">${esc(r[2])}</p></div>`).join('')}</div>`:''}`}
 
-
 function vTasks(){const p=S.tasks.filter(x=>x.st==='pending').sort((a,b)=>a.due.localeCompare(b.due)),dn=S.tasks.filter(x=>x.st==='done');
  const L=S.insp.filter(x=>x.field===D.field||true);
  const cmp=f=>{const a=S.insp.filter(x=>x.field===f).sort((x,y)=>x.date.localeCompare(y.date));if(a.length<2)return'';const o=a[a.length-2],n=a[a.length-1];
- return`<p class="s">Compare: ${esc(o.date)} "${esc(o.label)}" → ${esc(n.date)} "${esc(n.label)}". ${n.outcome?'Recorded outcome: '+esc(n.outcome)+'.':'No outcome recorded, so no improvement is claimed.'}</p>`};
+  return`<p class="s">Compare: ${esc(o.date)} "${esc(o.label)}" → ${esc(n.date)} "${esc(n.label)}". ${n.outcome?'Recorded outcome: '+esc(n.outcome)+'.':'No outcome recorded, so no improvement is claimed.'}</p>`};
  return`<h2>${t('tasks')}</h2>${conflicts().map(c=>`<div class="note warn">⚠ ${esc(c)}</div>`).join('')}
 <form class="card row" data-form="task"><input name="title" placeholder="New task" required aria-label="Task title"><input type="date" name="due" value="${day(0)}"><select name="cat"><option>inspection</option><option>irrigation</option><option>fertiliser</option><option>soil test</option></select><button class="p">Add task</button></form>
 <h3>Pending (${p.length})</h3>${p.length?p.map(x=>taskCard(x)).join(''):'<div class="card">No pending tasks.</div>'}
@@ -188,7 +178,6 @@ function vTasks(){const p=S.tasks.filter(x=>x.st==='pending').sort((a,b)=>a.due.
 <label>Outcome at follow-up</label><select data-oc="${x.id}">${['','Improved','No change','Worse'].map(o=>`<option ${x.outcome===o?'selected':''} value="${o}">${o||'Not recorded'}</option>`).join('')}</select></div>`).join(''):'<div class="card">No inspections saved.</div>'}
 ${Object.keys(FIELDS).map(cmp).join('')}`}
 
-
 function vSoil(){const s=S.soil,v=(x,u='')=>x===''||x==null?'<span class="s">Not available</span>':esc(x)+u;
  let tip='No soil moisture reading. Check soil by hand before irrigating.';
  if(DAYS.slice(0,2).some(d=>(d.rain||0)>=10))tip='Heavy rain is forecast within 2 days. Hold off on irrigation and check drainage.';
@@ -196,6 +185,19 @@ function vSoil(){const s=S.soil,v=(x,u='')=>x===''||x==null?'<span class="s">Not
  return`<h2>${t('soil')}</h2><div class="card"><h3>Latest soil record</h3><p class="s">Source: ${esc(s.src)} · ${esc(s.date)}</p>
 <div class="grid"><p>pH: ${v(s.ph)}</p><p>Moisture: ${v(s.moisture,'%')}</p><p>Nitrogen: ${v(s.n,' kg/ha')}</p><p>Phosphorus: ${v(s.p,' kg/ha')}</p><p>Potassium: ${v(s.k,' kg/ha')}</p></div></div>
 <form class="card" data-form="soil"><h3>Enter soil values</h3><div class="grid"><div><label>pH</label><input name="ph" type="number" step="0.1" min="0" max="14"></div><div><label>Moisture %</label><input name="moisture" type="number" min="0" max="100"></div><div><label>N kg/ha</label><input name="n" type="number" min="0"></div><div><label>P kg/ha</label><input name="p" type="number" min="0"></div><div><label>K kg/ha</label><input name="k" type="number" min="0"></div>
+<div><label>Source</label><select name="src"><option>Measured</option><option>Laboratory report</option><option>Estimated</option></select></div></div><p class="s">Leave blank if unknown. Blank is stored as "not available", never zero.</p><button class="p">Save soil record</button></form>
+<div class="card"><h3>Irrigation suggestion</h3><p>${tip}</p></div>
+<form class="card row" data-form="irr"><input type="date" name="date" value="${day(0)}"><select name="field">${Object.entries(FIELDS).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('')}</select><input name="litres" type="number" min="0" placeholder="Litres (optional)"><button class="p">Log irrigation</button></form>
+${S.irr.slice().reverse().map(x=>`<div class="card s">${esc(x.date)} · ${esc(FIELDS[x.field].n)} · ${x.litres?esc(x.litres)+' L':'amount not recorded'} ${esc(x.note||'')}</div>`).join('')}`}
+
+/* Dataset-based crop recommendation: standardized 7-nearest-neighbours. */
+let CROP_ROWS=null, CROP_ERROR='', CROP_RESULT=null;
+const CROP_KEYS=['N','P','K','temperature','humidity','ph','rainfall'];
+async function loadCropData(){
+ if(CROP_ROWS||CROP_ERROR)return;
+ try{const r=await fetch('/data/crop_recommendation.csv');if(!r.ok)throw new Error('Dataset HTTP '+r.status);
+ const txt=await r.text();const lines=txt.trim().split(/\r?\n/);const cols=lines.shift().split(',').map(x=>x.trim());
+ const ids=[...CROP_KEYS,'label'].map(k=>cols.indexOf(k));if(ids.some(i=>i<0))throw new Error('Dataset columns are missing');
  CROP_ROWS=lines.map(line=>{const cells=line.split(',');return {v:ids.slice(0,7).map(i=>Number(cells[i])),crop:cells[ids[7]].trim()}}).filter(x=>x.crop&&x.v.every(Number.isFinite));
  if(!CROP_ROWS.length)throw new Error('No usable dataset rows');
  }catch(e){CROP_ERROR=e.message}draw();
@@ -223,28 +225,26 @@ function draw(){const ic={home:'🏠',doctor:'🌿',weather:'⛅',tasks:'✅',so
 function toast(m){const e=$('#toast');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 function addTask(x){if(S.tasks.some(y=>y.st==='pending'&&y.title===x.title&&y.due===x.due))return toast('Already in your plan');S.tasks.push({id:Date.now()+Math.random(),st:'pending',...x});save();toast('Added to calendar')}
 
-
 const cur=()=>D.res.live?D.res.data:SC[D.res.sc];
 async function runAnalysis(){D.err=null;
  if(!D.files.length){D.res={sc:D.sc,field:D.field};return draw()}
  D.busy=true;D.res=null;draw();
  try{
- const shrink=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok({type:'image/jpeg',data:c.toDataURL('image/jpeg',.8).split(',')[1]})};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Could not read '+f.name))};im.src=u});
- if(D.files.length>4)throw new Error('Use at most 4 photos');
- const imgs=await Promise.all(D.files.map(x=>shrink(x.file)));
- const f=FIELDS[D.field],ctx={crop:f.crop,stage:f.stage,irrigation:f.irr,location:S.loc.name,soil:S.soil,forecast_next_3_days:DAYS.slice(0,3)};
- const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imgs,context:ctx})});
- if(r.status===503){D.err='Live AI is not configured (no API key), so a preset demo example is shown instead.';D.res={sc:D.sc,field:D.field}}
- else{const j=await r.json();if(!r.ok)throw new Error(j.error||'Analysis failed');D.res={live:true,field:D.field,data:j}}
+  const shrink=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok({type:'image/jpeg',data:c.toDataURL('image/jpeg',.8).split(',')[1]})};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Could not read '+f.name))};im.src=u});
+  if(D.files.length>4)throw new Error('Use at most 4 photos');
+  const imgs=await Promise.all(D.files.map(x=>shrink(x.file)));
+  const f=FIELDS[D.field],ctx={crop:f.crop,stage:f.stage,irrigation:f.irr,location:S.loc.name,soil:S.soil,forecast_next_3_days:DAYS.slice(0,3)};
+  const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:imgs,context:ctx})});
+  if(r.status===503){D.err='Live AI is not configured (no API key), so a preset demo example is shown instead.';D.res={sc:D.sc,field:D.field}}
+  else{const j=await r.json();if(!r.ok)throw new Error(j.error||'Analysis failed');D.res={live:true,field:D.field,data:j}}
  }catch(e){
- if(e instanceof TypeError){D.err='Could not reach the server (start it with npm start), so a preset demo example is shown instead.';D.res={sc:D.sc,field:D.field}}
- else D.err='Analysis failed: '+e.message+'. Your photos are kept. Try again.'}
+  if(e instanceof TypeError){D.err='Could not reach the server (start it with npm start), so a preset demo example is shown instead.';D.res={sc:D.sc,field:D.field}}
+  else D.err='Analysis failed: '+e.message+'. Your photos are kept. Try again.'}
  D.busy=false;draw()}
-
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-v],[data-a]');if(!b)return;
- if(b.dataset.v){if(b.dataset.v==='doctor'){window.location.href='/crop-doctor.html';return}V=b.dataset.v;draw();scrollTo(0,0);return}
+ if(b.dataset.v){V=b.dataset.v;draw();scrollTo(0,0);return}
  const a=b.dataset.a,id=Number(b.dataset.id),x=S.tasks.find(y=>y.id===id);
  if(a==='done'&&x){x.st='done';x.doneOn=day(0);save();toast('Marked completed')}
  else if(a==='later'&&x){const d=new Date(x.due+'T00:00');d.setDate(d.getDate()+1);x.due=d.toLocaleDateString('en-CA');save();toast('Moved to tomorrow')}
@@ -265,10 +265,10 @@ document.addEventListener('change',e=>{const el=e.target;
 document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target,n=f.dataset.form,d=Object.fromEntries(new FormData(f));
  if(n==='task'){addTask({title:d.title.trim(),field:'tomato',cat:d.cat,due:d.due,prio:'med',why:'Added by you.'})}
  else if(n==='crop'){if(!CROP_ROWS)return toast('Dataset not ready');const vals=CROP_KEYS.map(k=>Number(d[k]));if(vals.some(x=>!Number.isFinite(x)))return toast('Enter all values');CROP_RESULT=cropPredict(vals);}
- else if(n==='soil'){S.soil={ph:d.ph,moisture:d.moisture===''?'':Number(d.moisture),n:d.n,p:d.p,k:d.k,date:day(0),src:d.src};save();toast('Soil record saved')}
+  else if(n==='soil'){S.soil={ph:d.ph,moisture:d.moisture===''?'':Number(d.moisture),n:d.n,p:d.p,k:d.k,date:day(0),src:d.src};save();toast('Soil record saved')}
  else if(n==='irr'){S.irr.push({date:d.date,field:d.field,litres:d.litres,note:''});save();toast('Irrigation logged')}
  else if(n==='loc'&&d.q.trim()){try{const r=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name='+encodeURIComponent(d.q))).json();const p=r.results?.[0];
- if(!p)return toast('Place not found');S.loc={name:[p.name,p.admin1].filter(Boolean).join(', '),lat:p.latitude,lon:p.longitude};save();return loadW()}catch(x){return toast('Location search failed')}}
+  if(!p)return toast('Place not found');S.loc={name:[p.name,p.admin1].filter(Boolean).join(', '),lat:p.latitude,lon:p.longitude};save();return loadW()}catch(x){return toast('Location search failed')}}
  draw()});
 draw();loadW();loadCropData();
 </script></body></html>
