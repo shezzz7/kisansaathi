@@ -244,7 +244,7 @@ async function runAnalysis(){D.err=null;
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-v],[data-a]');if(!b)return;
- if(b.dataset.v){V=b.dataset.v;draw();scrollTo(0,0);return}
+if(b.dataset.v){if(b.dataset.v==='doctor'){window.location.href='/crop-doctor.html';return}V=b.dataset.v;draw();scrollTo(0,0);return}
  const a=b.dataset.a,id=Number(b.dataset.id),x=S.tasks.find(y=>y.id===id);
  if(a==='done'&&x){x.st='done';x.doneOn=day(0);save();toast('Marked completed')}
  else if(a==='later'&&x){const d=new Date(x.due+'T00:00');d.setDate(d.getDate()+1);x.due=d.toLocaleDateString('en-CA');save();toast('Moved to tomorrow')}
